@@ -9,17 +9,35 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { authClient } from "@/lib/auth-client"
-import { Loader } from "lucide-react"
-import { useTransition } from "react"
+import { Loader, Send } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useState, useTransition } from "react"
 import { toast } from "sonner"
 
- 
-
-  
-
 export function LoginForm(){
+  const router = useRouter()
     const [githubPending, startGithubTransition] = useTransition();
   const [googlePending, startGoogleTransition] = useTransition();
+  const [emailPending, startEmailTransition] = useTransition();
+  const [email,setEmail]= useState("")
+
+  async function signinWitEmail(){
+    startEmailTransition(async () =>{
+      await authClient.emailOtp.sendVerificationOtp({
+        email: email,
+        type:"sign-in",
+        fetchOptions:{
+          onSuccess : () =>{
+            toast.success('email sent');
+            router.push(`/verefy-require?email=${email}`)
+          },
+          onError:(error) =>{
+            toast.error(error.error.message);
+          }
+        }
+      })
+    })
+  } 
 
   async  function signinWithGithub(){
     startGithubTransition(async () =>{
@@ -72,30 +90,32 @@ export function LoginForm(){
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
+              value={email}
+              onChange={(e)=>setEmail(e.target.value)}
                 id="email"
                 type="email"
                 placeholder="m@example.com"
                 required
               />
             </div>
-            <div className="grid gap-2">
-              <div className="flex items-center">
-                <Label htmlFor="password">Password</Label>
-                <a
-                  href="#"
-                  className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
-                >
-                  Forgot your password?
-                </a>
-              </div>
-              <Input id="password" type="password" required />
-            </div>
+            
           </div>
         </form>
       </CardContent>
       <CardFooter className="flex-col gap-2">
-        <Button type="submit" className="w-full">
-          Login
+        <Button onClick={signinWitEmail} disabled={emailPending} type="submit" className="w-full">
+          
+          {emailPending ? (
+            <>
+            <Loader className="size-4 animate-spin" />
+            <span>Loading...</span>
+            </>
+          ):(
+           <>
+           <Send className="size-4" />
+           <span>Login with Email</span>
+           </>  
+          )}
         </Button>
         <Button disabled={googlePending} onClick={signinWithGoogle} variant="outline" className="w-full">
           
